@@ -51,7 +51,7 @@ class CatalogingPipeline:
         """Routes item to department taxonomy and isolates raw color and clean fabric."""
         # Offline Fallback Mode is not needed for MVP. The pipeline operates strictly with live LLM structured outputs.
         if not self.cheap_llm:
-            raise RuntimeError("Live LLM client (Cheap Model) is not initialized. Please set OPENROUTER_API_KEY in your .env file.")
+            raise RuntimeError("Live LLM client (Cheap Model) is not initialized. Please set GROQ_API_KEY in your environment or Streamlit secrets.")
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", (
@@ -102,7 +102,7 @@ class CatalogingPipeline:
         """Generates cultural Hinglish occasion search tags and catchy product copy."""
         # Offline Fallback Mode is not needed for MVP. The pipeline operates strictly with live LLM structured outputs.
         if not self.strong_copy_llm:
-            raise RuntimeError("Live LLM client (Strong Copy Model) is not initialized. Please set OPENROUTER_API_KEY in your .env file.")
+            raise RuntimeError("Live LLM client (Strong Copy Model) is not initialized. Please set GROQ_API_KEY in your environment or Streamlit secrets.")
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", (
@@ -183,7 +183,7 @@ class CatalogingPipeline:
         """Evaluates whether the copy contradicts fabric, detects impossible care, and flags anomalies."""
         # Offline Fallback Mode is not needed for MVP. The pipeline operates strictly with live LLM structured outputs.
         if not self.strong_eval_llm:
-            raise RuntimeError("Live LLM client (Strong Evaluator Model) is not initialized. Please set OPENROUTER_API_KEY in your .env file.")
+            raise RuntimeError("Live LLM client (Strong Evaluator Model) is not initialized. Please set GROQ_API_KEY in your environment or Streamlit secrets.")
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", (

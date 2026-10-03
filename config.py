@@ -10,13 +10,46 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
+def _get_setting(name: str, default: str = "") -> str:
+    """Read the value from env, then Streamlit secrets when running in deployment."""
+    value = os.getenv(name)
+    if value is not None and value.strip():
+        return value.strip()
+
+    try:
+        import streamlit as st
+        secret_value = st.secrets.get(name)
+        if secret_value is not None:
+            return str(secret_value).strip()
+    except Exception:
+        pass
+
+    legacy_aliases = {
+        "GROQ_API_KEY": ["OPENROUTER_API_KEY", "OPENAI_API_KEY"],
+    }
+    for alias in legacy_aliases.get(name, []):
+        value = os.getenv(alias)
+        if value is not None and value.strip():
+            return value.strip()
+        try:
+            import streamlit as st
+            secret_value = st.secrets.get(alias)
+            if secret_value is not None:
+                return str(secret_value).strip()
+        except Exception:
+            pass
+
+    return default
+
+
 # Groq API Configuration
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_API_KEY = _get_setting("GROQ_API_KEY", "")
 
 # Two Models Minimum Configuration (Groq)
-CHEAP_MODEL = os.getenv("CHEAP_MODEL", "openai/gpt-oss-20b")
-STRONG_MODEL = os.getenv("STRONG_MODEL", "openai/gpt-oss-120b")
+CHEAP_MODEL = _get_setting("CHEAP_MODEL", "openai/gpt-oss-20b")
+STRONG_MODEL = _get_setting("STRONG_MODEL", "openai/gpt-oss-120b")
 
 # Alternative model choices
 FALLBACK_CHEAP_MODEL = "openai/gpt-oss-20b"
