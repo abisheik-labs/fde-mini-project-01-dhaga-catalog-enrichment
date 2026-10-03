@@ -1,0 +1,1 @@
+"""Core cataloging pipeline module."""

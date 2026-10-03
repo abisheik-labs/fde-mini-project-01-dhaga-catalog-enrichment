@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.pytest_cache/
+
+# Environments & Keys
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Streamlit
+.streamlit/
+
+# OS Specific
+.DS_Store
+Thumbs.db
