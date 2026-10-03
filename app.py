@@ -6,6 +6,7 @@ Plus Jakarta Sans Typography • Deep Navy Hero • No Clunky Tabs • 100% User
 
 import os
 import time
+from typing import Optional
 import pandas as pd
 import streamlit as st
 from config import (
@@ -334,6 +335,34 @@ if "stage_1_done" not in st.session_state:
 if "stage_2_done" not in st.session_state:
     st.session_state.stage_2_done = False
 
+if "derivation_error" not in st.session_state:
+    st.session_state.derivation_error = None
+
+
+def set_derivation_error(error: Exception, sku_id: Optional[str] = None):
+    """Store a concise user-facing message and retain the original error for troubleshooting."""
+    error_text = str(error)
+    if "401" in error_text or "403" in error_text or "AuthenticationError" in error_text or "PermissionDeniedError" in error_text:
+        title = "Groq authentication failed"
+        message = "Check that `GROQ_API_KEY` is set correctly in your Streamlit app secrets, then restart or redeploy the app."
+    elif "429" in error_text or "rate limit" in error_text.lower():
+        title = "Groq rate limit reached"
+        message = "Wait briefly and try again, or check the rate limits for your Groq account."
+    elif "Live LLM client" in error_text:
+        title = "LLM configuration is missing"
+        message = "Add `GROQ_API_KEY` to Streamlit app secrets and restart or redeploy the app."
+    else:
+        title = "Catalog enrichment failed"
+        message = "The item could not be enriched. Review the technical details below and try again."
+
+    st.session_state.derivation_error = {
+        "title": title,
+        "message": message,
+        "details": error_text,
+        "sku_id": sku_id,
+    }
+
+
 def raw_row_to_input(row):
     return RawVendorInput(
         sku_id=str(row["sku_id"]),
@@ -412,6 +441,14 @@ st.markdown("""
 <div style="border-top: 1px solid #E2E8F0; padding-top: 24px; margin-top: 10px;"></div>
 """, unsafe_allow_html=True)
 
+if st.session_state.derivation_error:
+    error = st.session_state.derivation_error
+    with st.container(border=True):
+        label = f" for `{error['sku_id']}`" if error["sku_id"] else ""
+        st.error(f"**{error['title']}{label}**\n\n{error['message']}")
+        with st.expander("Technical details"):
+            st.code(error["details"])
+
 # Action Toolbar
 header_col1, header_col2 = st.columns([8, 4])
 
@@ -424,6 +461,7 @@ with header_col2:
     btn_label = "⚡ Derive & Enrich Attributes"
     btn_type = "primary" if not st.session_state.stage_1_done else "secondary"
     if st.button(btn_label, type=btn_type, use_container_width=True, help="Derives all attributes, standardizes fabrics/colors, writes SEO titles, PDP bullets, care rules, and Hinglish tags"):
+        st.session_state.derivation_error = None
         with st.spinner("Deriving garment attributes, generating product copy, and verifying quality guardrails..."):
             fast_p = CatalogingPipeline(api_key=None)
             batch = []
@@ -435,19 +473,8 @@ with header_col2:
                 st.success("Attributes derived and listings enriched successfully!")
                 st.rerun()
             except Exception as e:
-                err_msg = str(e)
-                if "401" in err_msg or "403" in err_msg or "AuthenticationError" in err_msg or "PermissionDeniedError" in err_msg:
-                    st.error(
-                        "⚠️ **Groq API Authentication Error**: "
-                        "Check that `GROQ_API_KEY` in your `.env` file is valid and active."
-                    )
-                elif "429" in err_msg or "rate limit" in err_msg.lower():
-                    st.error(
-                        "⚠️ **Groq Rate Limit Reached**: "
-                        "Wait briefly and retry, or check your Groq account's rate limits."
-                    )
-                else:
-                    st.error(f"⚠️ **Derivation Error**: {err_msg}")
+                set_derivation_error(e)
+                st.rerun()
 
 
 # =============================================================
@@ -900,6 +927,7 @@ if st.session_state.raw_df is not None:
                 help=f"Derive attributes and generate copy for {sku_val} only",
                 use_container_width=True
             ):
+                st.session_state.derivation_error = None
                 try:
                     with st.spinner(f"Enriching {sku_val}..."):
                         pipeline = CatalogingPipeline(api_key=None)
@@ -908,10 +936,5 @@ if st.session_state.raw_df is not None:
                     st.session_state.stage_1_done = len(st.session_state.processed_results) == len(st.session_state.raw_df)
                     st.rerun()
                 except Exception as e:
-                    err_msg = str(e)
-                    if "401" in err_msg or "403" in err_msg or "AuthenticationError" in err_msg or "PermissionDeniedError" in err_msg:
-                        st.error("⚠️ **Groq API Authentication Error**: Check that `GROQ_API_KEY` in your `.env` file is valid and active.")
-                    elif "429" in err_msg or "rate limit" in err_msg.lower():
-                        st.error("⚠️ **Groq Rate Limit Reached**: Wait briefly and retry, or check your Groq account's rate limits.")
-                    else:
-                        st.error(f"⚠️ **Derivation Error for {sku_val}**: {err_msg}")
+                    set_derivation_error(e, sku_val)
+                    st.rerun()
