@@ -522,14 +522,6 @@ def show_conflict_dialog(sku_id: str):
         st.success(f"{item.sku_id} conflict resolved! Marked as Staged.")
         st.rerun()
 
-# Modal Trigger from Accordion Row Links
-if "resolve" in st.query_params:
-    resolve_sku = st.query_params.get("resolve")
-    if resolve_sku:
-        del st.query_params["resolve"]
-        show_conflict_dialog(resolve_sku)
-
-
 @st.dialog("Edit SKU Attributes")
 def show_edit_dialog(sku_id: str):
     item = next((r for r in st.session_state.processed_results if r.sku_id == sku_id), None)
@@ -661,15 +653,10 @@ if st.session_state.processed_results:
         reasons_txt = ", ".join(reasons_list) if reasons_list else "Contradictory garment attributes require manual verification."
         if is_review:
             conflict_banner = f"""
-            <div style="background: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="background: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
                 <div>
                     <div style="font-weight: 700; color: #991B1B; font-size: 13px; margin-bottom: 2px;">⚠️ Quality Conflict Flagged ({itm.sku_id}): {reasons_txt}</div>
                     <div style="font-size: 11.5px; color: #B91C1C;">Contradictory specifications must be resolved before this listing can be approved.</div>
-                </div>
-                <div>
-                    <a href="?resolve={itm.sku_id}" target="_self" style="display: inline-block; background: #DC2626; color: #FFFFFF !important; font-weight: 700; font-size: 12px; padding: 7px 15px; border-radius: 6px; text-decoration: none; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25);">
-                        ⚡ Resolve Conflict
-                    </a>
                 </div>
             </div>
             """
@@ -802,7 +789,16 @@ if st.session_state.processed_results:
         </details>
         """)
         with row_columns[1]:
-            st.empty()
+            if is_review:
+                if st.button(
+                    "⚡ Resolve Conflict",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"resolve_conflict_{itm.sku_id}",
+                ):
+                    show_conflict_dialog(itm.sku_id)
+            else:
+                st.empty()
 if st.session_state.raw_df is not None:
     processed_skus = {itm.sku_id for itm in st.session_state.processed_results}
     for _, r in st.session_state.raw_df.iterrows():
