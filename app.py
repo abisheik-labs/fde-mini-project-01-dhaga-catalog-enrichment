@@ -342,9 +342,16 @@ if "derivation_error" not in st.session_state:
 def set_derivation_error(error: Exception, sku_id: Optional[str] = None):
     """Store a concise user-facing message and retain the original error for troubleshooting."""
     error_text = str(error)
-    if "401" in error_text or "403" in error_text or "AuthenticationError" in error_text or "PermissionDeniedError" in error_text:
-        title = "Groq authentication failed"
-        message = "Check that `GROQ_API_KEY` is set correctly in your Streamlit app secrets, then restart or redeploy the app."
+    if "403" in error_text:
+        title = "Groq denied the request (403)"
+        message = (
+            "Groq returned an access-denied response. Check whether your API key or account has "
+            "network/IP restrictions, and confirm the configured models are available to your account. "
+            "If the key is IP-restricted, Streamlit Cloud's outbound address may not be allowed."
+        )
+    elif "401" in error_text or "AuthenticationError" in error_text or "PermissionDeniedError" in error_text:
+        title = "Groq authentication failed (401)"
+        message = "Check that `GROQ_API_KEY` in Streamlit app secrets is valid and active, then restart or redeploy the app."
     elif "429" in error_text or "rate limit" in error_text.lower():
         title = "Groq rate limit reached"
         message = "Wait briefly and try again, or check the rate limits for your Groq account."
